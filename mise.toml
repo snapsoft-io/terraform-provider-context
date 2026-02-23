@@ -1,0 +1,53 @@
+[tools]
+opentofu = '1.11'
+go = '1.26'
+
+[env]
+GOBIN = "{{config_root}}/.bin/"
+TF_CLI_CONFIG_FILE = "{{config_root}}/.terraform.tfrc"
+
+[tasks.install]
+description = "Installs the Terraform provider"
+run = "go install ."
+
+[tasks.add-dependency]
+description = "Adds a new dependeny to the Terraform provider"
+usage = '''
+arg "<dependency>" help="Go dependency URL"
+'''
+run = "go get ${usage_dependency}"
+
+[tasks.clean-dependencies]
+description = "Cleans up the go dependencies"
+run = "go mod tidy"
+
+[tasks.tf-config]
+description = "Creates a terrafrom config file to override the availability path for this Terraform provider"
+run = "envsubst \"s|\\$GOBIN|$GOBIN|g\" < terraform.tfrc.tmpl > .terraform.tfrc"
+run_windows = "powershell -NoProfile -Command \"(Get-Content terraform.tfrc.tmpl) -replace '\\$GOBIN', $env:GOBIN | Set-Content .terraform.tfrc\""
+sources = ["terraform.tfrc.tmpl"]
+outputs = [".terraform.tfrc"]
+
+[tasks.tf-plan]
+description = "Runs tofu plan"
+dir = "{{cwd}}"
+run = "tofu plan"
+depends = ["tf-config"]
+
+[tasks.test-all]
+description = "Runs all the acceptance tests"
+run = "TF_ACC=1 go test -count=1 -v ./..."
+
+[tasks.test]
+description = "Runs a specific test"
+dir = "{{cwd}}"
+usage = '''
+arg "<testname>" help="Test function name"
+flag "--path <path>" help="Relative path to directory that contins the test function" default="."
+'''
+run = "TF_ACC=1 go test -count=1 -v -run=${usage_testname} ${usage_path}"
+
+[tasks.generate-doc]
+description = "Generates documentation"
+dir = "./tools"
+run = "go generate ./..."
