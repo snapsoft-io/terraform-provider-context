@@ -1,0 +1,81 @@
+name: Create Release Tag
+run-name: ${{ github.actor }} creates release tag on ${{ github.ref_name }} with ${{ github.event_name }}
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check target branch
+        if: github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main'
+        run: |
+          echo "This workflow should not be triggered with 'workflow_dispatch' on a branch other than 'main'."
+          exit 1
+
+      - name: Checkout Repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Gather release information
+        run: |
+          SEMVER_REGEX='^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-((0|[1-9][0-9]*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*)(\.(0|[1-9][0-9]*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*))*))?(\+([0-9a-zA-Z-]+(\.[0-9a-zA-Z-]+)*))?$'
+
+          # Extract version number
+          VERSION=$(git log -1 --pretty=format:"%b" | sed -E 's/^[Rr]elease\///' | sed 's/ /-/g')
+
+          # Validate tag based on SemVer
+          if [[ "$VERSION" =~ $SEMVER_REGEX ]]; then
+            echo "Valid SemVer: $VERSION"
+          else
+            echo "Invalid SemVer: $VERSION"
+            exit 1
+          fi
+
+          # Extract major version
+          MAJOR=$(echo "$VERSION" | cut -d. -f1)
+
+          # Check if release is in a prod or pre state?
+          if [[ "$MAJOR" != "0" && "$VERSION" != *-* ]]; then
+            IS_PROD_RELEASE="true"
+            IS_PRE_RELEASE="false"
+          else
+            IS_PROD_RELEASE="false"
+            IS_PRE_RELEASE="true"
+          fi
+
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "IS_PRE_RELEASE=$IS_PRE_RELEASE" >> $GITHUB_ENV
+          echo "IS_PROD_RELEASE=$IS_PROD_RELEASE" >> $GITHUB_ENV
+
+          echo "Version: $VERSION"
+          echo "Pre-release?: $IS_PRE_RELEASE"
+          echo "Prod-release?: $IS_PROD_RELEASE"
+
+      - name: Check Release Tag
+        id: check-release-tag
+        run: |
+          # Check if tag already exists
+          if git ls-remote --tags origin | grep -q "refs/tags/v${{ env.VERSION }}$"; then
+            echo "Tag v${{ env.VERSION }} already exists. Skipping tag creation."
+            exit 1
+          else
+            echo "Tag v${{ env.VERSION }} does not exist. Proceeding with tag creation."
+          fi
+
+      - name: Create Release Tag
+        if: ${{ steps.check-release-tag.outcome == 'success' }}
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Create tag
+          git tag -a "${{ env.VERSION }}" -m "Release ${{ env.VERSION }}"
+          git push origin "${{ env.VERSION }}"
