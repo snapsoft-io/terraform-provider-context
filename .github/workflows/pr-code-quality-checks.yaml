@@ -29,3 +29,6 @@ jobs:
 
       - name: Run Go checks
         run: mise run test-all
+
+      - name: Run Terraform / OpenTofu checks
+        run: mise run tf-plan-all
