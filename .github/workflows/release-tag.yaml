@@ -1,4 +1,4 @@
-name: Create Release Tag
+name: Release Tag
 run-name: ${{ github.actor }} creates release tag on ${{ github.ref_name }} with ${{ github.event_name }}
 
 on:
