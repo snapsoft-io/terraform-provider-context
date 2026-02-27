@@ -8,5 +8,5 @@ size_labels:
 
 # NOTE: Add GitHub usernames
 reviewers:
-#  - <GITHUB_USERNAME_01>
-#  - <GITHUB_USERNAME_02>
+  - "snapkristof"
+  - "vtstanescu"
