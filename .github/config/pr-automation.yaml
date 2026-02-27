@@ -1,0 +1,12 @@
+# NOTE: Add GitHub username
+default_assignee: "SnapSoftGabrielStp"
+
+# NOTE: Anything else above medium is considered large
+size_labels:
+  small: 50
+  medium: 200
+
+# NOTE: Add GitHub usernames
+reviewers:
+#  - <GITHUB_USERNAME_01>
+#  - <GITHUB_USERNAME_02>
