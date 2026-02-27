@@ -27,6 +27,9 @@ jobs:
           install: true
           cache: true
 
+      - name: Go install
+        run: mise run install
+
       - name: Run Go checks
         run: mise run test-all
 
