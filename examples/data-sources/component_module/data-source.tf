@@ -10,13 +10,13 @@ provider "context" {
   mappers_file_path = "provider-mappers.json"
   vars = {
     organization_id = "0123456789"
-    id_prefix   = "snap"
-    environment = "sbx"
+    id_prefix       = "snap"
+    environment     = "sbx"
   }
 }
 
 data "context_component_module_metadata" "test" {
-  name = "test-component"
+  name    = "test-component"
   context = local.context
 }
 
@@ -33,8 +33,8 @@ data "context_label_item" "test" {
 
 locals {
   context = {
-    stack   = []
-    vars = []
+    stack = []
+    vars  = []
   }
 }
 

@@ -6,6 +6,12 @@ project {
   copyright_year   = 2026
 
   header_ignore = [
+    # auto-generated files
+    ".idea/**",
+    ".git/**",
+    ".github/**",
+    ".bin/**",
+
     # examples used within documentation (prose)
     "examples/**",
 
