@@ -1,0 +1,108 @@
+name: PR Automation
+run-name: "${{ github.actor }} is running workflow against PR: ${{ github.event.pull_request.title }}"
+on:
+  pull_request:
+    types: [opened]
+
+permissions:
+  pull-requests: write
+  contents: write
+
+jobs:
+  pr-handle:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+
+      - name: Load config
+        id: config
+        run: |
+          CONFIG=$(cat .github/config/pr-automation.yaml | yq -o json -I=0)
+          echo "config=$CONFIG" >> $GITHUB_OUTPUT
+          DEFAULT_ASSIGNEE=$(echo "$CONFIG" | jq -r '.default_assignee // ""')
+          echo "has_assignee=$([[ -n "$DEFAULT_ASSIGNEE" ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+
+      - name: Assign default user
+        if: steps.config.outputs.has_assignee == 'true'
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd
+        env:
+          CONFIG: ${{ steps.config.outputs.config }}
+        with:
+          script: |
+            const config = JSON.parse(process.env.CONFIG);
+            github.rest.issues.addAssignees({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              assignees: [config.default_assignee]
+            })
+
+      - name: Add appropriate label
+        if: steps.config.outputs.has_assignee == 'true'
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd
+        with:
+          script: |
+            const isDependabot = context.actor === 'dependabot[bot]';
+            const label = isDependabot ? 'automation' : 'human';
+
+            github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                labels: [label]
+            });
+
+      - name: Auto-label based on diff size
+        if: steps.config.outputs.has_assignee == 'true'
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd
+        env:
+          CONFIG: ${{ steps.config.outputs.config }}
+        with:
+          script: |
+            const config = JSON.parse(process.env.CONFIG);
+            const pr = context.payload.pull_request;
+            const total = pr.additions + pr.deletions;
+
+            let label;
+            if (total < config.size_labels.small) {
+              label = 'size-small';
+            } else if (total < config.size_labels.medium) {
+              label = 'size-medium';
+            } else {
+              label = 'size-large';
+            }
+
+            github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              labels: [label]
+            });
+
+      - name: Request reviewers (excluding PR author)
+        if: steps.config.outputs.has_assignee == 'true'
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd
+        env:
+          CONFIG: ${{ steps.config.outputs.config }}
+        with:
+          script: |
+            const config = JSON.parse(process.env.CONFIG);
+            const author = context.payload.pull_request.user.login;
+
+            if (!config.reviewers || config.reviewers.length === 0) {
+              console.log('No reviewers configured');
+              return;
+            }
+
+            const filtered = config.reviewers.filter(r => r !== author);
+
+            if (filtered.length > 0) {
+              github.rest.pulls.requestReviewers({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.issue.number,
+                reviewers: filtered
+              });
+            }

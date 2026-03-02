@@ -29,9 +29,30 @@ sources = ["terraform.tfrc.tmpl"]
 outputs = [".terraform.tfrc"]
 
 [tasks.tf-plan]
-description = "Runs tofu plan"
+description = "Runs tofu init and plan"
 dir = "{{cwd}}"
-run = "tofu plan"
+run = "tofu init && tofu plan"
+depends = ["tf-config"]
+
+[tasks.tf-plan-all]
+description = "Runs tofu init and plan on all directories containing .tf files"
+run = '''
+# Find all directories containing .tf files
+tf_dirs=$(find ./examples -name "*.tf" -type f -exec dirname {} \; | sort -u)
+
+if [ -z "$tf_dirs" ]; then
+  echo "No directories with .tf files found"
+  exit 0
+fi
+
+# Run tofu init and plan in each directory
+for dir in $tf_dirs; do
+  echo "============================================================================"
+  echo "Running tofu init and plan in $dir"
+  echo "============================================================================"
+  (cd "$dir" && tofu plan) || exit 1
+done
+'''
 depends = ["tf-config"]
 
 [tasks.test-all]
