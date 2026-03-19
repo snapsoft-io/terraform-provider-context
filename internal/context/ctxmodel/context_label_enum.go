@@ -9,53 +9,48 @@ import (
 	"github.com/snapsoft/terraform-provider-context/internal/utils"
 )
 
-type ContextLabel int
+type ContextType int
 
 const (
-	ContextLabelExampleModule ContextLabel = iota
-	ContextLabelRootModule
-	ContextLabelComponentModule
-	ContextLabelNamespace
-	ContextLabelItem
+	ContextTypeNamespace ContextType = iota
+	ContextTypeLabel
 )
 
-var contextLabeblToStringLabelId = map[ContextLabel]string{
-	ContextLabelExampleModule:   "em",
-	ContextLabelRootModule:      "rm",
-	ContextLabelComponentModule: "cm",
-	ContextLabelNamespace:       "ns",
-	ContextLabelItem:            "it",
+var contextTypeToStringId = map[ContextType]string{
+	ContextTypeNamespace: "ns",
+	ContextTypeLabel:     "lb",
 }
 
-var stringLabelIdToContextLabel = map[string]ContextLabel{
-	"em": ContextLabelExampleModule,
-	"rm": ContextLabelRootModule,
-	"cm": ContextLabelComponentModule,
-	"ns": ContextLabelNamespace,
-	"it": ContextLabelItem,
+var stringIdToContextType = map[string]ContextType{
+	"ns": ContextTypeNamespace,
+	"lb": ContextTypeLabel,
 }
 
-var contextLabelAllowedPredecessors = map[ContextLabel][]ContextLabel{
-	ContextLabelExampleModule:   {},
-	ContextLabelRootModule:      {ContextLabelExampleModule},
-	ContextLabelComponentModule: {ContextLabelExampleModule, ContextLabelRootModule, ContextLabelNamespace},
-	ContextLabelNamespace:       {ContextLabelExampleModule, ContextLabelRootModule, ContextLabelComponentModule, ContextLabelNamespace},
-	ContextLabelItem:            {ContextLabelExampleModule, ContextLabelRootModule, ContextLabelComponentModule, ContextLabelNamespace},
+var contextTypeAllowedPredecessors = map[ContextType][]ContextType{
+	ContextTypeNamespace: {ContextTypeNamespace},
+	ContextTypeLabel:     {ContextTypeNamespace},
 }
 
-func (cl ContextLabel) String() string {
-	return contextLabeblToStringLabelId[cl]
+func (ct ContextType) String() string {
+	return contextTypeToStringId[ct]
 }
 
-func ParseContextClassEnum(labelId string) (ContextLabel, error) {
-	var contaxtLabel, ok = stringLabelIdToContextLabel[labelId]
+func ParseContextClassEnum(labelId string) (ContextType, error) {
+	var contextType, ok = stringIdToContextType[labelId]
 	if !ok {
-		return contaxtLabel, fmt.Errorf("invalid context label: the following string is not a valid context label enum %q", labelId)
+		return contextType, fmt.Errorf("invalid context label: the following string is not a valid context label enum %q", labelId)
 	}
 
-	return contaxtLabel, nil
+	return contextType, nil
 }
 
-func (cl ContextLabel) IsPredecessorAllowed(predecessor ContextLabel) bool {
-	return utils.Contains(contextLabelAllowedPredecessors[cl], predecessor)
+func (ct ContextType) IsPredecessorAllowed(predecessor ContextType) bool {
+	return utils.Contains(contextTypeAllowedPredecessors[ct], predecessor)
+}
+
+// RequiresPredecessor returns true for types that cannot appear as the first
+// (or only) element in a context stack — i.e. they always need at least one
+// preceding namespace.
+func (ct ContextType) RequiresPredecessor() bool {
+	return ct == ContextTypeLabel
 }

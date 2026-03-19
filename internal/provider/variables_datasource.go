@@ -18,7 +18,7 @@ import (
 )
 
 var (
-	_ datasource.DataSource = &itemDataSource{}
+	_ datasource.DataSource = &variableDataSource{}
 )
 
 func NewVariableDataSource() datasource.DataSource {
@@ -47,40 +47,10 @@ func (d *variableDataSource) Schema(_ context.Context, _ datasource.SchemaReques
 					"stack": schema.ListNestedAttribute{
 						Required: true,
 						Validators: []validator.List{
-							ctxvalidator.ContextStackOrderValidator(ctxmodel.ContextLabelItem),
+							ctxvalidator.ContextStackOrderValidator(ctxmodel.ContextTypeLabel),
 						},
 						NestedObject: schema.NestedAttributeObject{
-							Attributes: map[string]schema.Attribute{
-								"name": schema.StringAttribute{
-									Required: true,
-								},
-								"label_id": schema.StringAttribute{
-									Required: true,
-									Validators: []validator.String{
-										ctxvalidator.ContextLabelIdValueValidator(),
-									},
-								},
-								"vars": schema.MapAttribute{
-									Optional:    true,
-									ElementType: types.StringType,
-								},
-								"mappers": schema.ListNestedAttribute{
-									Optional: true,
-									NestedObject: schema.NestedAttributeObject{
-										Attributes: map[string]schema.Attribute{
-											"name": schema.StringAttribute{
-												Required: true,
-											},
-											"run_condition": schema.StringAttribute{
-												Optional: true,
-											},
-											"function": schema.StringAttribute{
-												Required: true,
-											},
-										},
-									},
-								},
-							},
+							Attributes: contextStackElementAttributes(),
 						},
 					},
 				},

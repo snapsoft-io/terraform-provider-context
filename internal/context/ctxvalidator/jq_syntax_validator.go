@@ -45,7 +45,7 @@ func (v jqSyntaxValidator) ValidateList(ctx context.Context, req validator.ListR
 	for _, mapper := range mapperFunctions {
 		var name = mapper.Name.ValueString()
 		var runCondition = mapper.RunCondition.ValueString()
-		var function = mapper.RunCondition.ValueString()
+		var function = mapper.Function.ValueString()
 
 		if runCondition != "" {
 			if _, err := gojq.Parse(runCondition); err != nil {

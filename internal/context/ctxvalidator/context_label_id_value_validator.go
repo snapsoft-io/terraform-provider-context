@@ -22,11 +22,11 @@ func ContextLabelIdValueValidator() validator.String {
 type contextLabelIdValueValidator struct{}
 
 func (v contextLabelIdValueValidator) Description(ctx context.Context) string {
-	return "Context label id must be set to one of the following accepted values: 'em', 'rm', 'cm', 'it' or 'ns'"
+	return "Context label id must be set to one of the following accepted values: 'ns' or 'lb'"
 }
 
 func (v contextLabelIdValueValidator) MarkdownDescription(ctx context.Context) string {
-	return "Context label id must be set to one of the following accepted values: `em`, `rm`, `cm`, `it` or `ns`"
+	return "Context label id must be set to one of the following accepted values: `ns` or `lb`"
 }
 
 func (v contextLabelIdValueValidator) ValidateString(ctx context.Context, req validator.StringRequest, resp *validator.StringResponse) {

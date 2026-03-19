@@ -42,7 +42,7 @@ type itemDataSourceModel struct {
 }
 
 func (d *itemDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
-	resp.TypeName = "context_label_item"
+	resp.TypeName = "context_label"
 }
 
 func (d *itemDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
@@ -60,40 +60,10 @@ func (d *itemDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, r
 					"stack": schema.ListNestedAttribute{
 						Required: true,
 						Validators: []validator.List{
-							ctxvalidator.ContextStackOrderValidator(ctxmodel.ContextLabelItem),
+							ctxvalidator.ContextStackOrderValidator(ctxmodel.ContextTypeLabel),
 						},
 						NestedObject: schema.NestedAttributeObject{
-							Attributes: map[string]schema.Attribute{
-								"name": schema.StringAttribute{
-									Required: true,
-								},
-								"label_id": schema.StringAttribute{
-									Required: true,
-									Validators: []validator.String{
-										ctxvalidator.ContextLabelIdValueValidator(),
-									},
-								},
-								"vars": schema.MapAttribute{
-									Optional:    true,
-									ElementType: types.StringType,
-								},
-								"mappers": schema.ListNestedAttribute{
-									Optional: true,
-									NestedObject: schema.NestedAttributeObject{
-										Attributes: map[string]schema.Attribute{
-											"name": schema.StringAttribute{
-												Required: true,
-											},
-											"run_condition": schema.StringAttribute{
-												Optional: true,
-											},
-											"function": schema.StringAttribute{
-												Required: true,
-											},
-										},
-									},
-								},
-							},
+							Attributes: contextStackElementAttributes(),
 						},
 					},
 				},
@@ -137,13 +107,22 @@ func (d *itemDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 		return
 	}
 
+	// Validate resource_type has at least 2 characters
+	if len(dataSource.ResourceType.ValueString()) < 2 {
+		resp.Diagnostics.AddError(
+			"Invalid resource_type",
+			"resource_type must be a non-empty string with at least 2 characters",
+		)
+		return
+	}
+
 	// Add resource_type as variable to the item stack element
 	itemVars, diags := types.MapValue(types.StringType, map[string]attr.Value{"resource_type": dataSource.ResourceType})
 	resp.Diagnostics.Append(diags...)
 	if diags.HasError() {
 		return
 	}
-	dataSource.Context.Stack.AddWithNameLabelVars(dataSource.Name, ctxmodel.ContextLabelItem, itemVars)
+	dataSource.Context.Stack.AddWithNameLabelVars(dataSource.Name, ctxmodel.ContextTypeLabel, itemVars)
 
 	// Collect context data and evaluate the mappers on it
 	stack := dataSource.Context.Stack.ToAnyGoType(ctx)
@@ -169,13 +148,25 @@ func (d *itemDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 		resp.Diagnostics.Append(diags...)
 		return
 	}
+
+	// Apply default id: computed from namespace names with casing and prefix.
+	// Only used when no mapper has set the id.
+	if contextOutput.Id == "" {
+		contextOutput.Id = d.computeDefaultId(dataSource)
+	}
+
+	// If tags were not set by any mapper, default to {"Name": <id>}
+	if contextOutput.Tags == nil {
+		contextOutput.Tags = map[string]string{"Name": contextOutput.Id}
+	}
+
 	tagMap, err := utils.ConvertGoMapToTfMap(contextOutput.Tags)
 	if err != nil {
 		diags.AddError("Failed to convert go map to terraform map value", err.Error())
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	dataSource.Id = types.StringValue((*contextOutput).Id)
+	dataSource.Id = types.StringValue(contextOutput.Id)
 	dataSource.Tags, err = utils.MergeTfMaps(dataSource.Tags, tagMap)
 	if err != nil {
 		diags.AddError("Failed to merge context tags with currently given tags", err.Error())
@@ -191,4 +182,46 @@ func (d *itemDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 
 	diags = resp.State.Set(ctx, &dataSource)
 	resp.Diagnostics.Append(diags...)
+}
+
+// computeDefaultId builds the default id from namespace names, applying casing and prefix.
+// Namespace-level settings take precedence over provider-level settings.
+// If include_resource_type_in_id is true, the resource_type is appended.
+// Falls back to the label name if no parts are available.
+func (d *itemDataSource) computeDefaultId(dataSource itemDataSourceModel) string {
+	// Resolve effective id_casing (last namespace with a value wins, then provider config)
+	idCasing := d.providerConfig.IdCasing
+	if effectiveCasing, ok := dataSource.Context.Stack.GetEffectiveIdCasing(); ok {
+		idCasing = effectiveCasing
+	}
+
+	// Resolve effective id_prefix
+	idPrefix := d.providerConfig.IdPrefix
+	if effectivePrefix, ok := dataSource.Context.Stack.GetEffectiveIdPrefix(); ok {
+		idPrefix = effectivePrefix
+	}
+
+	// Resolve effective include_resource_type_in_id
+	includeResourceType := d.providerConfig.IncludeResourceTypeInId
+	if effectiveInclude, ok := dataSource.Context.Stack.GetEffectiveIncludeResourceTypeInId(); ok {
+		includeResourceType = effectiveInclude
+	}
+
+	// Build the parts list
+	parts := make([]string, 0)
+	if idPrefix != "" {
+		parts = append(parts, idPrefix)
+	}
+	parts = append(parts, dataSource.Context.Stack.GetNamespaceNames()...)
+	parts = append(parts, dataSource.Name.ValueString())
+	if includeResourceType {
+		parts = append(parts, dataSource.ResourceType.ValueString())
+	}
+
+	computed := utils.ApplyCasing(parts, idCasing)
+	if computed == "" {
+		// Fall back to name when no parts are available
+		return dataSource.Name.ValueString()
+	}
+	return computed
 }
