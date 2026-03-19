@@ -23,7 +23,7 @@ func main() {
 	flag.Parse()
 
 	opts := providerserver.ServeOpts{
-		Address: "registry.terraform.io/snapsoft/terraform-provider-context",
+		Address: "registry.terraform.io/snapsoft-io/context",
 		Debug:   debug,
 	}
 

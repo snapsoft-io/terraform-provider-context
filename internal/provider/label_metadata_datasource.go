@@ -24,32 +24,14 @@ func NewLabelMetadataDataSources() []func() datasource.DataSource {
 	return []func() datasource.DataSource{
 		func() datasource.DataSource {
 			return newLabelMetadataDataSource(
-				ctxmodel.ContextLabelExampleModule,
-				"example_module_metadata",
-			)
-		},
-		func() datasource.DataSource {
-			return newLabelMetadataDataSource(
-				ctxmodel.ContextLabelRootModule,
-				"root_module_metadata",
-			)
-		},
-		func() datasource.DataSource {
-			return newLabelMetadataDataSource(
-				ctxmodel.ContextLabelComponentModule,
-				"component_module_metadata",
-			)
-		},
-		func() datasource.DataSource {
-			return newLabelMetadataDataSource(
-				ctxmodel.ContextLabelNamespace,
-				"label_namespace",
+				ctxmodel.ContextTypeNamespace,
+				"namespace",
 			)
 		},
 	}
 }
 
-func newLabelMetadataDataSource(labelId ctxmodel.ContextLabel, typeName string) datasource.DataSource {
+func newLabelMetadataDataSource(labelId ctxmodel.ContextType, typeName string) datasource.DataSource {
 	return &labelBuilderBaseDataSource{
 		LabelId:  labelId,
 		TypeName: typeName,
@@ -57,15 +39,18 @@ func newLabelMetadataDataSource(labelId ctxmodel.ContextLabel, typeName string) 
 }
 
 type labelBuilderBaseDataSource struct {
-	LabelId  ctxmodel.ContextLabel
+	LabelId  ctxmodel.ContextType
 	TypeName string
 }
 
 type labelBuilderDataSourceBaseSchema struct {
-	Name    types.String                             `tfsdk:"name"`
-	Context *ctxschema.ContextSchema                 `tfsdk:"context"`
-	Vars    types.Map                                `tfsdk:"vars"`
-	Mappers *[]ctxschema.ContextMapperFunctionSchema `tfsdk:"mappers"`
+	Name                  types.String                             `tfsdk:"name"`
+	Context               ctxschema.ContextSchema                  `tfsdk:"context"`
+	Vars                  types.Map                                `tfsdk:"vars"`
+	Mappers               *[]ctxschema.ContextMapperFunctionSchema `tfsdk:"mappers"`
+	IdCasing              types.String                             `tfsdk:"id_casing"`
+	IdPrefix              types.String                             `tfsdk:"id_prefix"`
+	IncludeResourceTypeInId types.Bool                             `tfsdk:"include_resource_type_in_id"`
 }
 
 func (d *labelBuilderBaseDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -79,8 +64,7 @@ func (d *labelBuilderBaseDataSource) Schema(_ context.Context, _ datasource.Sche
 				Required: true,
 			},
 			"context": schema.SingleNestedAttribute{
-				Required: d.LabelId != ctxmodel.ContextLabelExampleModule,
-				Computed: d.LabelId == ctxmodel.ContextLabelExampleModule,
+				Required: true,
 				Attributes: map[string]schema.Attribute{
 					"stack": schema.ListNestedAttribute{
 						Required: true,
@@ -88,37 +72,7 @@ func (d *labelBuilderBaseDataSource) Schema(_ context.Context, _ datasource.Sche
 							ctxvalidator.ContextStackOrderValidator(d.LabelId),
 						},
 						NestedObject: schema.NestedAttributeObject{
-							Attributes: map[string]schema.Attribute{
-								"name": schema.StringAttribute{
-									Required: true,
-								},
-								"label_id": schema.StringAttribute{
-									Required: true,
-									Validators: []validator.String{
-										ctxvalidator.ContextLabelIdValueValidator(),
-									},
-								},
-								"vars": schema.MapAttribute{
-									Optional:    true,
-									ElementType: types.StringType,
-								},
-								"mappers": schema.ListNestedAttribute{
-									Optional: true,
-									NestedObject: schema.NestedAttributeObject{
-										Attributes: map[string]schema.Attribute{
-											"name": schema.StringAttribute{
-												Required: true,
-											},
-											"run_condition": schema.StringAttribute{
-												Optional: true,
-											},
-											"function": schema.StringAttribute{
-												Required: true,
-											},
-										},
-									},
-								},
-							},
+							Attributes: contextStackElementAttributes(),
 						},
 					},
 				},
@@ -143,6 +97,18 @@ func (d *labelBuilderBaseDataSource) Schema(_ context.Context, _ datasource.Sche
 					},
 				},
 			},
+			"id_casing": schema.StringAttribute{
+				Optional: true,
+				Validators: []validator.String{
+					ctxvalidator.IdCasingValidator(),
+				},
+			},
+			"id_prefix": schema.StringAttribute{
+				Optional: true,
+			},
+			"include_resource_type_in_id": schema.BoolAttribute{
+				Optional: true,
+			},
 		},
 	}
 }
@@ -156,17 +122,15 @@ func (d *labelBuilderBaseDataSource) Read(ctx context.Context, req datasource.Re
 		return
 	}
 
-	if d.LabelId == ctxmodel.ContextLabelExampleModule && dataSource.Context == nil {
-		dataSource.Context = &ctxschema.ContextSchema{
-			Stack: ctxschema.ContextStackSchema{},
-		}
-	}
-
 	dataSource.Context.Stack.Add(
 		dataSource.Name,
 		d.LabelId,
 		dataSource.Vars,
-		dataSource.Mappers)
+		dataSource.Mappers,
+		dataSource.IdCasing,
+		dataSource.IdPrefix,
+		dataSource.IncludeResourceTypeInId,
+	)
 
 	diags = resp.State.Set(ctx, &dataSource)
 	resp.Diagnostics.Append(diags...)

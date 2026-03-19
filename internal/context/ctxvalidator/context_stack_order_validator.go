@@ -15,20 +15,20 @@ var (
 	_ validator.List = contextStackOrderValidator{}
 )
 
-func ContextStackOrderValidator(labelId ctxmodel.ContextLabel) validator.List {
+func ContextStackOrderValidator(labelId ctxmodel.ContextType) validator.List {
 	return &contextStackOrderValidator{LabelId: labelId}
 }
 
 type contextStackOrderValidator struct {
-	LabelId ctxmodel.ContextLabel
+	LabelId ctxmodel.ContextType
 }
 
 func (v contextStackOrderValidator) Description(ctx context.Context) string {
-	return "Context labels must be in the following order 'example module'->'root module'->'component module'->'item', and only 'namespace' can be repeated, and must be placed between 'root module' and 'item'"
+	return "Context labels must be in the following order: one or more 'namespace' entries followed by a 'label'. A label cannot appear without at least one preceding namespace."
 }
 
 func (v contextStackOrderValidator) MarkdownDescription(ctx context.Context) string {
-	return "Context labels must be in the following order `example module`->`root module`->`component module`->`item`, and only `namespace` can be repeated, and must be placed between `root module` and `item`"
+	return "Context labels must be in the following order: one or more `namespace` entries followed by a `label`. A label cannot appear without at least one preceding namespace."
 }
 
 func (v contextStackOrderValidator) ValidateList(ctx context.Context, req validator.ListRequest, resp *validator.ListResponse) {
@@ -49,7 +49,7 @@ func (v contextStackOrderValidator) ValidateList(ctx context.Context, req valida
 		resp.Diagnostics.AddAttributeError(
 			req.Path,
 			"Invalid context label order",
-			"Context labels elements must be in the following order 'example module'->'root module'->'component module'->'item', and only 'namespace' can be repeated, and must be placed between 'root module' and 'item'",
+			"Context labels must be in the following order: one or more 'namespace' entries followed by a 'label'. A label cannot appear without at least one preceding namespace.",
 		)
 
 		return
