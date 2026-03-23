@@ -4,6 +4,7 @@
 package provider
 
 import (
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -46,7 +47,7 @@ func contextStackElementAttributes() map[string]schema.Attribute {
 		"id_casing": schema.StringAttribute{
 			Optional: true,
 			Validators: []validator.String{
-				ctxvalidator.IdCasingValidator(),
+				stringvalidator.OneOf(ctxvalidator.ValidIdCasingValues...),
 			},
 		},
 		"id_prefix": schema.StringAttribute{

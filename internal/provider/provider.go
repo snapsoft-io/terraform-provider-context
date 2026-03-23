@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
@@ -78,7 +79,7 @@ func (p *contextProvider) Schema(ctx context.Context, req provider.SchemaRequest
 			"id_casing": schema.StringAttribute{
 				Optional: true,
 				Validators: []validator.String{
-					ctxvalidator.IdCasingValidator(),
+					stringvalidator.OneOf(ctxvalidator.ValidIdCasingValues...),
 				},
 			},
 			"id_prefix": schema.StringAttribute{
