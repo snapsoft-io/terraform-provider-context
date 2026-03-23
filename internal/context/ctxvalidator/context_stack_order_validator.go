@@ -15,12 +15,12 @@ var (
 	_ validator.List = contextStackOrderValidator{}
 )
 
-func ContextStackOrderValidator(labelId ctxmodel.ContextType) validator.List {
-	return &contextStackOrderValidator{LabelId: labelId}
+func ContextStackOrderValidator(contextType ctxmodel.ContextType) validator.List {
+	return &contextStackOrderValidator{ContextType: contextType}
 }
 
 type contextStackOrderValidator struct {
-	LabelId ctxmodel.ContextType
+	ContextType ctxmodel.ContextType
 }
 
 func (v contextStackOrderValidator) Description(ctx context.Context) string {
@@ -43,7 +43,7 @@ func (v contextStackOrderValidator) ValidateList(ctx context.Context, req valida
 		return
 	}
 
-	stackElements.AddWithLabel(v.LabelId)
+	stackElements.AddWithType(v.ContextType)
 
 	if !stackElements.IsLastElementInValidPlace() {
 		resp.Diagnostics.AddAttributeError(

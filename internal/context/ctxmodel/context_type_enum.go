@@ -35,10 +35,10 @@ func (ct ContextType) String() string {
 	return contextTypeToStringId[ct]
 }
 
-func ParseContextClassEnum(labelId string) (ContextType, error) {
-	var contextType, ok = stringIdToContextType[labelId]
+func ParseContextClassEnum(value string) (ContextType, error) {
+	var contextType, ok = stringIdToContextType[value]
 	if !ok {
-		return contextType, fmt.Errorf("invalid context label: the following string is not a valid context label enum %q", labelId)
+		return contextType, fmt.Errorf("invalid context label: the following string is not a valid context label enum %q", value)
 	}
 
 	return contextType, nil

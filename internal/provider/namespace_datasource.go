@@ -5,7 +5,6 @@ package provider
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
@@ -17,47 +16,30 @@ import (
 )
 
 var (
-	_ datasource.DataSource = &labelBuilderBaseDataSource{}
+	_ datasource.DataSource = &namespaceDataSource{}
 )
 
-func NewLabelMetadataDataSources() []func() datasource.DataSource {
-	return []func() datasource.DataSource{
-		func() datasource.DataSource {
-			return newLabelMetadataDataSource(
-				ctxmodel.ContextTypeNamespace,
-				"namespace",
-			)
-		},
-	}
+func NewNamespaceDataSource() datasource.DataSource {
+	return &namespaceDataSource{}
 }
 
-func newLabelMetadataDataSource(labelId ctxmodel.ContextType, typeName string) datasource.DataSource {
-	return &labelBuilderBaseDataSource{
-		LabelId:  labelId,
-		TypeName: typeName,
-	}
+type namespaceDataSource struct{}
+
+type namespaceDataSourceSchema struct {
+	Name                    types.String                             `tfsdk:"name"`
+	Context                 ctxschema.ContextSchema                  `tfsdk:"context"`
+	Vars                    types.Map                                `tfsdk:"vars"`
+	Mappers                 *[]ctxschema.ContextMapperFunctionSchema `tfsdk:"mappers"`
+	IdCasing                types.String                             `tfsdk:"id_casing"`
+	IdPrefix                types.String                             `tfsdk:"id_prefix"`
+	IncludeResourceTypeInId types.Bool                               `tfsdk:"include_resource_type_in_id"`
 }
 
-type labelBuilderBaseDataSource struct {
-	LabelId  ctxmodel.ContextType
-	TypeName string
+func (d *namespaceDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+	resp.TypeName = "context_namespace"
 }
 
-type labelBuilderDataSourceBaseSchema struct {
-	Name                  types.String                             `tfsdk:"name"`
-	Context               ctxschema.ContextSchema                  `tfsdk:"context"`
-	Vars                  types.Map                                `tfsdk:"vars"`
-	Mappers               *[]ctxschema.ContextMapperFunctionSchema `tfsdk:"mappers"`
-	IdCasing              types.String                             `tfsdk:"id_casing"`
-	IdPrefix              types.String                             `tfsdk:"id_prefix"`
-	IncludeResourceTypeInId types.Bool                             `tfsdk:"include_resource_type_in_id"`
-}
-
-func (d *labelBuilderBaseDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
-	resp.TypeName = fmt.Sprintf("context_%s", d.TypeName)
-}
-
-func (d *labelBuilderBaseDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+func (d *namespaceDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"name": schema.StringAttribute{
@@ -69,7 +51,7 @@ func (d *labelBuilderBaseDataSource) Schema(_ context.Context, _ datasource.Sche
 					"stack": schema.ListNestedAttribute{
 						Required: true,
 						Validators: []validator.List{
-							ctxvalidator.ContextStackOrderValidator(d.LabelId),
+							ctxvalidator.ContextStackOrderValidator(ctxmodel.ContextTypeNamespace),
 						},
 						NestedObject: schema.NestedAttributeObject{
 							Attributes: contextStackElementAttributes(),
@@ -113,8 +95,8 @@ func (d *labelBuilderBaseDataSource) Schema(_ context.Context, _ datasource.Sche
 	}
 }
 
-func (d *labelBuilderBaseDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	var dataSource labelBuilderDataSourceBaseSchema
+func (d *namespaceDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	var dataSource namespaceDataSourceSchema
 
 	diags := req.Config.Get(ctx, &dataSource)
 	resp.Diagnostics.Append(diags...)
@@ -124,7 +106,7 @@ func (d *labelBuilderBaseDataSource) Read(ctx context.Context, req datasource.Re
 
 	dataSource.Context.Stack.Add(
 		dataSource.Name,
-		d.LabelId,
+		ctxmodel.ContextTypeNamespace,
 		dataSource.Vars,
 		dataSource.Mappers,
 		dataSource.IdCasing,

@@ -20,7 +20,7 @@ func contextStackElementAttributes() map[string]schema.Attribute {
 		"label_id": schema.StringAttribute{
 			Required: true,
 			Validators: []validator.String{
-				ctxvalidator.ContextLabelIdValueValidator(),
+				ctxvalidator.ContextTypeValueValidator(),
 			},
 		},
 		"vars": schema.MapAttribute{

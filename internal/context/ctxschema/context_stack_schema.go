@@ -11,49 +11,49 @@ import (
 )
 
 type ContextStackElementSchema struct {
-	Name                  types.String                   `tfsdk:"name"`
-	LabelId               types.String                   `tfsdk:"label_id"`
-	Vars                  types.Map                      `tfsdk:"vars"`
-	Mappers               *[]ContextMapperFunctionSchema `tfsdk:"mappers"`
-	IdCasing              types.String                   `tfsdk:"id_casing"`
-	IdPrefix              types.String                   `tfsdk:"id_prefix"`
-	IncludeResourceTypeInId types.Bool                   `tfsdk:"include_resource_type_in_id"`
+	Name                    types.String                   `tfsdk:"name"`
+	ContextType             types.String                   `tfsdk:"label_id"`
+	Vars                    types.Map                      `tfsdk:"vars"`
+	Mappers                 *[]ContextMapperFunctionSchema `tfsdk:"mappers"`
+	IdCasing                types.String                   `tfsdk:"id_casing"`
+	IdPrefix                types.String                   `tfsdk:"id_prefix"`
+	IncludeResourceTypeInId types.Bool                     `tfsdk:"include_resource_type_in_id"`
 }
 
 type ContextStackSchema []ContextStackElementSchema
 
 func (s *ContextStackSchema) Add(name types.String, contextType ctxmodel.ContextType, vars types.Map, mappers *[]ContextMapperFunctionSchema, idCasing types.String, idPrefix types.String, includeResourceTypeInId types.Bool) {
 	*s = append(*s, ContextStackElementSchema{
-		Name:                  name,
-		LabelId:               types.StringValue(contextType.String()),
-		Vars:                  vars,
-		Mappers:               mappers,
-		IdCasing:              idCasing,
-		IdPrefix:              idPrefix,
+		Name:                    name,
+		ContextType:             types.StringValue(contextType.String()),
+		Vars:                    vars,
+		Mappers:                 mappers,
+		IdCasing:                idCasing,
+		IdPrefix:                idPrefix,
 		IncludeResourceTypeInId: includeResourceTypeInId,
 	})
 }
 
-func (s *ContextStackSchema) AddWithLabel(contextType ctxmodel.ContextType) {
+func (s *ContextStackSchema) AddWithType(contextType ctxmodel.ContextType) {
 	*s = append(*s, ContextStackElementSchema{
-		Name:                  types.StringNull(),
-		LabelId:               types.StringValue(contextType.String()),
-		Vars:                  types.MapNull(types.StringType),
-		Mappers:               nil,
-		IdCasing:              types.StringNull(),
-		IdPrefix:              types.StringNull(),
+		Name:                    types.StringNull(),
+		ContextType:             types.StringValue(contextType.String()),
+		Vars:                    types.MapNull(types.StringType),
+		Mappers:                 nil,
+		IdCasing:                types.StringNull(),
+		IdPrefix:                types.StringNull(),
 		IncludeResourceTypeInId: types.BoolNull(),
 	})
 }
 
 func (s *ContextStackSchema) AddWithNameLabelVars(name types.String, contextType ctxmodel.ContextType, vars types.Map) {
 	*s = append(*s, ContextStackElementSchema{
-		Name:                  name,
-		LabelId:               types.StringValue(contextType.String()),
-		Vars:                  vars,
-		Mappers:               nil,
-		IdCasing:              types.StringNull(),
-		IdPrefix:              types.StringNull(),
+		Name:                    name,
+		ContextType:             types.StringValue(contextType.String()),
+		Vars:                    vars,
+		Mappers:                 nil,
+		IdCasing:                types.StringNull(),
+		IdPrefix:                types.StringNull(),
 		IncludeResourceTypeInId: types.BoolNull(),
 	})
 }
@@ -69,7 +69,7 @@ func (s *ContextStackSchema) ToAnyGoType(ctx context.Context) []any {
 		}
 		newStackElement := map[string]any{
 			"name":     stackElement.Name.ValueString(),
-			"label_id": stackElement.LabelId.ValueString(),
+			"label_id": stackElement.ContextType.ValueString(),
 			"vars":     vars,
 		}
 		stack = append(stack, newStackElement)
@@ -85,7 +85,7 @@ func (s *ContextStackSchema) IsLastElementInValidPlace() bool {
 		return true
 	}
 
-	lastStackElement, err := ctxmodel.ParseContextClassEnum((*s)[stackLength-1].LabelId.ValueString())
+	lastStackElement, err := ctxmodel.ParseContextClassEnum((*s)[stackLength-1].ContextType.ValueString())
 	if err != nil {
 		return false
 	}
@@ -97,7 +97,7 @@ func (s *ContextStackSchema) IsLastElementInValidPlace() bool {
 	}
 
 	for i := stackLength - 2; i >= 0; i-- {
-		parsedContextClass, err := ctxmodel.ParseContextClassEnum((*s)[i].LabelId.ValueString())
+		parsedContextClass, err := ctxmodel.ParseContextClassEnum((*s)[i].ContextType.ValueString())
 		if err != nil || !lastStackElement.IsPredecessorAllowed(parsedContextClass) {
 			return false
 		}
@@ -145,7 +145,7 @@ func (s *ContextStackSchema) GetStackMappersInBottomUpOrder() *[]ctxmodel.Contex
 func (s *ContextStackSchema) GetNamespaceNames() []string {
 	names := make([]string, 0)
 	for _, elem := range *s {
-		if elem.LabelId.ValueString() == ctxmodel.ContextTypeNamespace.String() {
+		if elem.ContextType.ValueString() == ctxmodel.ContextTypeNamespace.String() {
 			names = append(names, elem.Name.ValueString())
 		}
 	}
@@ -158,7 +158,7 @@ func (s *ContextStackSchema) GetEffectiveIdCasing() (string, bool) {
 	var found string
 	var ok bool
 	for _, elem := range *s {
-		if elem.LabelId.ValueString() == ctxmodel.ContextTypeNamespace.String() && !elem.IdCasing.IsNull() {
+		if elem.ContextType.ValueString() == ctxmodel.ContextTypeNamespace.String() && !elem.IdCasing.IsNull() {
 			found = elem.IdCasing.ValueString()
 			ok = true
 		}
@@ -172,7 +172,7 @@ func (s *ContextStackSchema) GetEffectiveIdPrefix() (string, bool) {
 	var found string
 	var ok bool
 	for _, elem := range *s {
-		if elem.LabelId.ValueString() == ctxmodel.ContextTypeNamespace.String() && !elem.IdPrefix.IsNull() {
+		if elem.ContextType.ValueString() == ctxmodel.ContextTypeNamespace.String() && !elem.IdPrefix.IsNull() {
 			found = elem.IdPrefix.ValueString()
 			ok = true
 		}
@@ -186,7 +186,7 @@ func (s *ContextStackSchema) GetEffectiveIncludeResourceTypeInId() (bool, bool) 
 	var found bool
 	var ok bool
 	for _, elem := range *s {
-		if elem.LabelId.ValueString() == ctxmodel.ContextTypeNamespace.String() && !elem.IncludeResourceTypeInId.IsNull() {
+		if elem.ContextType.ValueString() == ctxmodel.ContextTypeNamespace.String() && !elem.IncludeResourceTypeInId.IsNull() {
 			found = elem.IncludeResourceTypeInId.ValueBool()
 			ok = true
 		}

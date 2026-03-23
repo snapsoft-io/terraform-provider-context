@@ -139,10 +139,10 @@ func (p *contextProvider) Configure(ctx context.Context, req provider.ConfigureR
 	}
 
 	resp.DataSourceData = &ctxmodel.ContextProviderConfigModel{
-		MapperFunctions:        &mappers,
-		Vars:                   vars,
-		IdCasing:               idCasing,
-		IdPrefix:               idPrefix,
+		MapperFunctions:         &mappers,
+		Vars:                    vars,
+		IdCasing:                idCasing,
+		IdPrefix:                idPrefix,
 		IncludeResourceTypeInId: includeResourceTypeInId,
 	}
 }
@@ -152,8 +152,9 @@ func (p *contextProvider) Resources(ctx context.Context) []func() resource.Resou
 }
 
 func (p *contextProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
-	return append(
-		NewLabelMetadataDataSources(),
-		NewItemDataSource,
-		NewVariableDataSource)
+	return []func() datasource.DataSource{
+		NewNamespaceDataSource,
+		NewLabelDataSource,
+		NewVariableDataSource,
+	}
 }

@@ -22,18 +22,18 @@ import (
 )
 
 var (
-	_ datasource.DataSource = &itemDataSource{}
+	_ datasource.DataSource = &labelDataSource{}
 )
 
-func NewItemDataSource() datasource.DataSource {
-	return &itemDataSource{}
+func NewLabelDataSource() datasource.DataSource {
+	return &labelDataSource{}
 }
 
-type itemDataSource struct {
+type labelDataSource struct {
 	providerConfig *ctxmodel.ContextProviderConfigModel
 }
 
-type itemDataSourceModel struct {
+type labelDataSourceModel struct {
 	Name         types.String            `tfsdk:"name"`
 	ResourceType types.String            `tfsdk:"resource_type"`
 	Context      ctxschema.ContextSchema `tfsdk:"context"`
@@ -41,11 +41,11 @@ type itemDataSourceModel struct {
 	Tags         types.Map               `tfsdk:"tags"`
 }
 
-func (d *itemDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+func (d *labelDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
 	resp.TypeName = "context_label"
 }
 
-func (d *itemDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+func (d *labelDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"name": schema.StringAttribute{
@@ -80,7 +80,7 @@ func (d *itemDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, r
 	}
 }
 
-func (d *itemDataSource) Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+func (d *labelDataSource) Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
 	if req.ProviderData == nil {
 		return
 	}
@@ -98,8 +98,8 @@ func (d *itemDataSource) Configure(ctx context.Context, req datasource.Configure
 	d.providerConfig = providerConfig
 }
 
-func (d *itemDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	var dataSource itemDataSourceModel
+func (d *labelDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	var dataSource labelDataSourceModel
 
 	diags := req.Config.Get(ctx, &dataSource)
 	resp.Diagnostics.Append(diags...)
@@ -188,7 +188,7 @@ func (d *itemDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 // Namespace-level settings take precedence over provider-level settings.
 // If include_resource_type_in_id is true, the resource_type is appended.
 // Falls back to the label name if no parts are available.
-func (d *itemDataSource) computeDefaultId(dataSource itemDataSourceModel) string {
+func (d *labelDataSource) computeDefaultId(dataSource labelDataSourceModel) string {
 	// Resolve effective id_casing (last namespace with a value wins, then provider config)
 	idCasing := d.providerConfig.IdCasing
 	if effectiveCasing, ok := dataSource.Context.Stack.GetEffectiveIdCasing(); ok {
