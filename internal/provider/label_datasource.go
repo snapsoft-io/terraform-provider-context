@@ -9,6 +9,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
@@ -53,6 +54,9 @@ func (d *labelDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, 
 			},
 			"resource_type": schema.StringAttribute{
 				Required: true,
+				Validators: []validator.String{
+					stringvalidator.LengthAtLeast(2),
+				},
 			},
 			"context": schema.SingleNestedAttribute{
 				Required: true,
@@ -104,15 +108,6 @@ func (d *labelDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 	diags := req.Config.Get(ctx, &dataSource)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	// Validate resource_type has at least 2 characters
-	if len(dataSource.ResourceType.ValueString()) < 2 {
-		resp.Diagnostics.AddError(
-			"Invalid resource_type",
-			"resource_type must be a non-empty string with at least 2 characters",
-		)
 		return
 	}
 
