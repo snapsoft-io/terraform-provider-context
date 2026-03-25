@@ -18,7 +18,7 @@ func contextStackElementAttributes() map[string]schema.Attribute {
 		"name": schema.StringAttribute{
 			Required: true,
 		},
-		"label_id": schema.StringAttribute{
+		"type": schema.StringAttribute{
 			Required: true,
 			Validators: []validator.String{
 				ctxvalidator.ContextTypeValueValidator(),

@@ -6,25 +6,49 @@ terraform {
   }
 }
 
+# Provider-level defaults apply to every data source unless overridden at the
+# namespace level.  All three ID-shaping attributes (id_casing, id_prefix,
+# include_resource_type_in_id) can also be set individually on each
+# context_namespace data source for finer-grained control.
 provider "context" {
+  id_casing = "kebab-case"
+
+  vars = {
+    organization = "acme"
+    team         = "platform"
+  }
+
+  # Optional: load JQ-based mapper functions from an external JSON file.
+  # Inline mappers can alternatively be declared with the `mappers` block.
   mappers_file_path = "provider-mappers.json"
-  vars = {
-    organization_id = "0123456789"
-  }
 }
 
-data "context_example_module_metadata" "test" {
-  name = "test-example"
-  vars = {
-    id_prefix   = "snap"
-    environment = "sbx"
-  }
+# ── Build the context stack ───────────────────────────────────────────────────
+
+data "context_namespace" "env" {
+  name    = "production"
+  context = { stack = [] }
 }
 
-data "context_variables" "this" {
-  context = data.context_example_module_metadata.test.context
+data "context_namespace" "region" {
+  name    = "eu-west-1"
+  context = data.context_namespace.env.context
 }
 
-output "vars" {
-  value = data.context_variables.this.vars
+# ── Produce a resource label ──────────────────────────────────────────────────
+
+data "context_label" "bucket" {
+  name          = "assets"
+  resource_type = "s3-bucket"
+  context       = data.context_namespace.region.context
+}
+
+output "bucket_id" {
+  value = data.context_label.bucket.id
+  # => "production-eu-west-1-assets"
+}
+
+output "bucket_tags" {
+  value = data.context_label.bucket.tags
+  # => { Name = "production-eu-west-1-assets", Team = "platform", Organization = "acme" }
 }

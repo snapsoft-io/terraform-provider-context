@@ -12,7 +12,7 @@ import (
 
 type ContextStackElementSchema struct {
 	Name                    types.String                   `tfsdk:"name"`
-	ContextType             types.String                   `tfsdk:"label_id"`
+	ContextType             types.String                   `tfsdk:"type"`
 	Vars                    types.Map                      `tfsdk:"vars"`
 	Mappers                 *[]ContextMapperFunctionSchema `tfsdk:"mappers"`
 	IdCasing                types.String                   `tfsdk:"id_casing"`
@@ -68,9 +68,9 @@ func (s *ContextStackSchema) ToAnyGoType(ctx context.Context) []any {
 			}
 		}
 		newStackElement := map[string]any{
-			"name":     stackElement.Name.ValueString(),
-			"label_id": stackElement.ContextType.ValueString(),
-			"vars":     vars,
+			"name": stackElement.Name.ValueString(),
+			"type": stackElement.ContextType.ValueString(),
+			"vars": vars,
 		}
 		stack = append(stack, newStackElement)
 	}
