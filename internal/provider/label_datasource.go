@@ -31,6 +31,8 @@ func NewLabelDataSource() datasource.DataSource {
 }
 
 type labelDataSource struct {
+	// providerConfig's fields MUST NOT be mutated since this holds a reference to the provider's configuration, not a deep copy.
+	// Mutating providerConfig's fields will affect all data sources managed with that provider instance.
 	providerConfig *ctxmodel.ContextProviderConfigModel
 }
 
@@ -128,8 +130,8 @@ func (d *labelDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 		"vars":  utils.ToAnyMap(vars),
 	}
 	mappers := dataSource.Context.Stack.GetStackMappersInBottomUpOrder()
-	*d.providerConfig.MapperFunctions = append(*mappers, *d.providerConfig.MapperFunctions...)
-	evaluatedContextMain, err := ctxevaluator.EvaluateJqMappers(*d.providerConfig.MapperFunctions, extraJqParams)
+	*mappers = append(*mappers, *d.providerConfig.MapperFunctions...)
+	evaluatedContextMain, err := ctxevaluator.EvaluateJqMappers(*mappers, extraJqParams)
 	if err != nil {
 		diags.AddError("Failed to evaluate the context with the given mappers", err.Error())
 		resp.Diagnostics.Append(diags...)

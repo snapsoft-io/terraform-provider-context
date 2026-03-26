@@ -26,6 +26,8 @@ func NewVariableDataSource() datasource.DataSource {
 }
 
 type variableDataSource struct {
+	// providerConfig's fields MUST NOT be mutated since this holds a reference to the provider's configuration, not a deep copy.
+	// Mutating providerConfig's fields will affect all data sources managed with that provider instance.
 	providerConfig *ctxmodel.ContextProviderConfigModel
 }
 
