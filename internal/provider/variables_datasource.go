@@ -18,7 +18,7 @@ import (
 )
 
 var (
-	_ datasource.DataSource = &itemDataSource{}
+	_ datasource.DataSource = &variableDataSource{}
 )
 
 func NewVariableDataSource() datasource.DataSource {
@@ -26,6 +26,8 @@ func NewVariableDataSource() datasource.DataSource {
 }
 
 type variableDataSource struct {
+	// providerConfig's fields MUST NOT be mutated since this holds a reference to the provider's configuration, not a deep copy.
+	// Mutating providerConfig's fields will affect all data sources managed with that provider instance.
 	providerConfig *ctxmodel.ContextProviderConfigModel
 }
 
@@ -47,40 +49,10 @@ func (d *variableDataSource) Schema(_ context.Context, _ datasource.SchemaReques
 					"stack": schema.ListNestedAttribute{
 						Required: true,
 						Validators: []validator.List{
-							ctxvalidator.ContextStackOrderValidator(ctxmodel.ContextLabelItem),
+							ctxvalidator.ContextStackOrderValidator(ctxmodel.ContextTypeLabel),
 						},
 						NestedObject: schema.NestedAttributeObject{
-							Attributes: map[string]schema.Attribute{
-								"name": schema.StringAttribute{
-									Required: true,
-								},
-								"label_id": schema.StringAttribute{
-									Required: true,
-									Validators: []validator.String{
-										ctxvalidator.ContextLabelIdValueValidator(),
-									},
-								},
-								"vars": schema.MapAttribute{
-									Optional:    true,
-									ElementType: types.StringType,
-								},
-								"mappers": schema.ListNestedAttribute{
-									Optional: true,
-									NestedObject: schema.NestedAttributeObject{
-										Attributes: map[string]schema.Attribute{
-											"name": schema.StringAttribute{
-												Required: true,
-											},
-											"run_condition": schema.StringAttribute{
-												Optional: true,
-											},
-											"function": schema.StringAttribute{
-												Required: true,
-											},
-										},
-									},
-								},
-							},
+							Attributes: contextStackElementAttributes(),
 						},
 					},
 				},

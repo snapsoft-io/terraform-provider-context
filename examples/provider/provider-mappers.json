@@ -1,15 +1,6 @@
 [
   {
-    "name": "Set Id",
-    "function": "(.context.outputs += {id: [.vars.id_prefix] + [.vars.environment] + [.stack[] | select(.label_id==\"it\") | .name] + [.vars.resource_type] | map(select(. != null)) | join(\"-\")}).context"
-  },
-  {
-    "name": "Set Tags",
-    "function": "(.context.outputs += {tags: {environment: .vars.environment, path: [.stack[] | .label_id + \":\" + .name] | join(\"/\"),}}).context"
-  },
-  {
-    "name": "Set Test",
-    "run_condition": ".vars.environment == \"sbx\"",
-    "function": "(.context.outputs.tags += {organization_id: .vars.organization_id}).context"
+    "name": "Enrich tags with organisational metadata",
+    "function": "(.context.outputs.tags += {Team: .vars.team, Organization: .vars.organization}).context"
   }
 ]

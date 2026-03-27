@@ -17,7 +17,7 @@ func EvaluateContextOutput(contextMain any) (*ctxmodel.ContextOutputs, error) {
 
 	outputsObject, ok := contextObject["outputs"]
 	if !ok || outputsObject == nil {
-		return nil, fmt.Errorf("missing 'outputs' field from context.main")
+		return &ctxmodel.ContextOutputs{}, nil
 	}
 
 	outputsMap, ok := outputsObject.(map[string]any)
@@ -28,8 +28,6 @@ func EvaluateContextOutput(contextMain any) (*ctxmodel.ContextOutputs, error) {
 	contextOutputs := ctxmodel.ContextOutputs{}
 	if id, ok := outputsMap["id"].(string); ok {
 		contextOutputs.Id = id
-	} else {
-		return nil, fmt.Errorf("missing required output 'id' in context.main.outputs")
 	}
 
 	if tagsMap, ok := outputsMap["tags"].(map[string]any); ok {
@@ -42,8 +40,6 @@ func EvaluateContextOutput(contextMain any) (*ctxmodel.ContextOutputs, error) {
 			}
 		}
 		contextOutputs.Tags = tags
-	} else {
-		return nil, fmt.Errorf("missing required output 'tags' in context.main.outputs")
 	}
 
 	return &contextOutputs, nil

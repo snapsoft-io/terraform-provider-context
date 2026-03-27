@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
@@ -33,9 +34,12 @@ type contextProvider struct {
 }
 
 type contextProviderSchema struct {
-	Mappers         *[]ctxschema.ContextMapperFunctionSchema `tfsdk:"mappers"`
-	MappersFilePath types.String                             `tfsdk:"mappers_file_path"`
-	Vars            types.Map                                `tfsdk:"vars"`
+	Mappers                 *[]ctxschema.ContextMapperFunctionSchema `tfsdk:"mappers"`
+	MappersFilePath         types.String                             `tfsdk:"mappers_file_path"`
+	Vars                    types.Map                                `tfsdk:"vars"`
+	IdCasing                types.String                             `tfsdk:"id_casing"`
+	IdPrefix                types.String                             `tfsdk:"id_prefix"`
+	IncludeResourceTypeInId types.Bool                               `tfsdk:"include_resource_type_in_id"`
 }
 
 func (p *contextProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
@@ -71,6 +75,18 @@ func (p *contextProvider) Schema(ctx context.Context, req provider.SchemaRequest
 			"vars": schema.MapAttribute{
 				Optional:    true,
 				ElementType: types.StringType,
+			},
+			"id_casing": schema.StringAttribute{
+				Optional: true,
+				Validators: []validator.String{
+					stringvalidator.OneOf(ctxvalidator.ValidIdCasingValues...),
+				},
+			},
+			"id_prefix": schema.StringAttribute{
+				Optional: true,
+			},
+			"include_resource_type_in_id": schema.BoolAttribute{
+				Optional: true,
 			},
 		},
 	}
@@ -108,9 +124,27 @@ func (p *contextProvider) Configure(ctx context.Context, req provider.ConfigureR
 		}
 	}
 
+	idCasing := "kebab-case"
+	if !config.IdCasing.IsNull() {
+		idCasing = config.IdCasing.ValueString()
+	}
+
+	idPrefix := ""
+	if !config.IdPrefix.IsNull() {
+		idPrefix = config.IdPrefix.ValueString()
+	}
+
+	includeResourceTypeInId := false
+	if !config.IncludeResourceTypeInId.IsNull() {
+		includeResourceTypeInId = config.IncludeResourceTypeInId.ValueBool()
+	}
+
 	resp.DataSourceData = &ctxmodel.ContextProviderConfigModel{
-		MapperFunctions: &mappers,
-		Vars:            vars,
+		MapperFunctions:         &mappers,
+		Vars:                    vars,
+		IdCasing:                idCasing,
+		IdPrefix:                idPrefix,
+		IncludeResourceTypeInId: includeResourceTypeInId,
 	}
 }
 
@@ -119,8 +153,9 @@ func (p *contextProvider) Resources(ctx context.Context) []func() resource.Resou
 }
 
 func (p *contextProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
-	return append(
-		NewLabelMetadataDataSources(),
-		NewItemDataSource,
-		NewVariableDataSource)
+	return []func() datasource.DataSource{
+		NewNamespaceDataSource,
+		NewLabelDataSource,
+		NewVariableDataSource,
+	}
 }

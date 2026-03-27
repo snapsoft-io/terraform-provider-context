@@ -4,6 +4,9 @@
 package ctxmodel
 
 type ContextProviderConfigModel struct {
-	MapperFunctions *[]ContextMapperFunctionModel
-	Vars            map[string]string
+	MapperFunctions        *[]ContextMapperFunctionModel
+	Vars                   map[string]string
+	IdCasing               string
+	IdPrefix               string
+	IncludeResourceTypeInId bool
 }
