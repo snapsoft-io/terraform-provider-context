@@ -9,32 +9,27 @@ While many solutions offer simple string formatting, the `context` provider's ke
 The provider works by building a single, comprehensive **"context object"** (a structured JSON document). This object acts as a central repository for all the metadata about your infrastructure stack.
 
 Here's the workflow:
-1.  **Collect:** As Terraform walks through your modules (from root to child components), the provider's components collect metadata (like project, environment, application name, etc.) and progressively merge it into the central context object.
-2.  **Execute:** This `item_module` takes the complete, fully-assembled context object and executes your custom **JQ expression** against it.
-3.  **Generate:** The JQ script maps, filters, and transforms the data to produce the final, desired **name** and **tags** as outputs, which you can then pass directly to your resource.
+
+1. **Collect:** As Terraform walks through your modules (from root to child components), the provider's components collect metadata (like project, environment, application name, etc.) and progressively merge it into the central context object.
+2. **Execute:** This `item_module` takes the complete, fully-assembled context object and executes your custom **JQ expression** against it.
+3. **Generate:** The JQ script maps, filters, and transforms the data to produce the final, desired **name** and **tags** as outputs, which you can then pass directly to your resource.
 
 ## Key Components
 
 The provider is built around a few key elements that work together to build and evaluate the context:
 
-* **`root_module`:**
-  This element is used once in your main, top-level OpenTofu/Terraform module. Its job is to indicate the root of your configuration and establish the foundational metadata for the entire stack.
-
-* **`component_module`:**
-  You use this within your reusable child modules. It adds its own specific metadata to the context it inherits from its parent, enriching the overall context object.
-
 * **`namespace`:**
   This element logically groups a set of related resources or components. It's perfect for adding shared metadata to a specific subset of your infrastructure, such as everything belonging to a particular team or microservice.
 
-* **`item_module`:**
-  This is used for each resource you want to name. It is the final step that triggers the evaluation. It takes the fully assembled context object, runs the configured JQ expression, and provides the final **`name`** and **`tags`** as outputs.
+* **`label`:**
+  This is used for each resource you want to name. It is the final step that triggers the evaluation. It takes the fully assembled context object, runs the configured JQ expression, and provides the final **`id`** and **`tags`** as outputs.
 
-* **`example_module`:**
-  A helper module included with the provider, primarily used in examples and documentation to quickly generate a starting context for demonstration purposes.
+* **`variables`:**
+  A helper data source used to extract all variables and their evaluated values from a context stack.
 
 ## Requirements
 
-- [Mise](https://mise.jdx.dev/getting-started.html) >= 2025.11.14: Mise will install the necessary tools
+* [Mise](https://mise.jdx.dev/getting-started.html) >= 2025.11.14: Mise will install the necessary tools
 
 ## Building and Using The Provider
 
@@ -99,3 +94,9 @@ To generate or update documentation, run:
 ```shell
 mise run generate-doc
 ```
+
+## Releases
+
+To release a new version of the provider, you have to create a tag locally, annotated and signed, from the main branch, following semver format, and push it to GitHub.  
+GitHub Actions will trigger the release workflow that will create a release in GitHub from the tag, that will include the provider built binaries.  
+**NOTE**: GitHub UI cannot create tags without publishing a release, and since releases are immutable, the pipeline that will be triggered will not be able to add the built binaries to the release.
