@@ -5,6 +5,8 @@ go = '1.26'
 [env]
 GOBIN = "{{config_root}}/.bin/"
 TF_CLI_CONFIG_FILE = "{{config_root}}/.terraform.tfrc"
+# Acceptance tests (terraform-plugin-testing) run against OpenTofu, see TF_ACC_TERRAFORM_PATH in the test tasks.
+TF_ACC_PROVIDER_HOST = "registry.opentofu.org"
 
 [tasks.install]
 description = "Installs the Terraform provider"
@@ -57,7 +59,7 @@ depends = ["tf-config"]
 
 [tasks.test-all]
 description = "Runs all the acceptance tests"
-run = "TF_ACC=1 go test -count=1 -v ./..."
+run = "TF_ACC=1 TF_ACC_TERRAFORM_PATH=\"$(command -v tofu)\" go test -count=1 -v ./..."
 
 [tasks.test]
 description = "Runs a specific test"
@@ -66,7 +68,7 @@ usage = '''
 arg "<testname>" help="Test function name"
 flag "--path <path>" help="Relative path to directory that contins the test function" default="."
 '''
-run = "TF_ACC=1 go test -count=1 -v -run=${usage_testname} ${usage_path}"
+run = "TF_ACC=1 TF_ACC_TERRAFORM_PATH=\"$(command -v tofu)\" go test -count=1 -v -run=${usage_testname} ${usage_path}"
 
 [tasks.generate-doc]
 description = "Generates documentation"

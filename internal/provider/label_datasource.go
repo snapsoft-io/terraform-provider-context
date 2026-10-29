@@ -164,7 +164,10 @@ func (d *labelDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 		return
 	}
 	dataSource.Id = types.StringValue(contextOutput.Id)
-	dataSource.Tags, err = utils.MergeTfMaps(dataSource.Tags, tagMap)
+	// NOTE (CSLB-25): fix discovered while writing acceptance tests. The documented contract for the
+	// `tags` argument is that explicitly provided values win on key conflicts with computed/mapper tags,
+	// but the arguments were previously passed in the opposite order (computed tags won).
+	dataSource.Tags, err = utils.MergeTfMaps(tagMap, dataSource.Tags)
 	if err != nil {
 		diags.AddError("Failed to merge context tags with currently given tags", err.Error())
 		resp.Diagnostics.Append(diags...)

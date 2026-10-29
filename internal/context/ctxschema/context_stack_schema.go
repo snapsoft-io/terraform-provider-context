@@ -61,10 +61,17 @@ func (s *ContextStackSchema) AddWithNameLabelVars(name types.String, contextType
 func (s *ContextStackSchema) ToAnyGoType(ctx context.Context) []any {
 	stack := make([]any, 0, len(*s))
 	for _, stackElement := range *s {
-		vars := make(map[string]string, 0)
-		if !stackElement.Vars.IsNull() {
-			for k, v := range stackElement.Vars.Elements() {
-				vars[k] = v.String()
+		// NOTE (CSLB-25): fix discovered while writing acceptance tests. The previous implementation built
+		// `vars` as a map[string]string of attr.Value.String() results, which (a) leaked JSON-quoted
+		// literals such as "\"prod\"" and (b) is not a type gojq accepts as an object, so any mapper
+		// touching `.stack[].vars.<key>` failed with "expected an object". Plain strings in a
+		// map[string]any are used instead.
+		vars := make(map[string]any)
+		if !stackElement.Vars.IsNull() && !stackElement.Vars.IsUnknown() {
+			var stringVars map[string]string
+			stackElement.Vars.ElementsAs(ctx, &stringVars, false)
+			for k, v := range stringVars {
+				vars[k] = v
 			}
 		}
 		newStackElement := map[string]any{
